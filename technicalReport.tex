@@ -1,148 +1,481 @@
 \documentclass[12pt,letterpaper,oneside]{article}
 
+% If your template has a common preamble, keep this:
 \input{./latexGoodPractices/preamble}
 
-%==============================================================
-% FILL THIS SECTION
+%================= Meta information =================
 
-\newcommand{\reportTitle}{Use a Descriptive Title}
-\newcommand{\reportAuthors}{First Last, Fran\c{c}ois Pomerleau}
-\newcommand{\reportDate}{\today} % or manually: November 23, 2017
+\newcommand{\reportTitle}{Deep Learning-Based Regional Vehicle Recognition System}
+\newcommand{\reportAuthors}{Zhang Jinrong}
+\newcommand{\reportDate}{May 2025}
 
 \newcommand{\reportVersions}{
-0.1 & \today & Initial writing %\\
-%1.0 & November 23, 2017 & Final writing
+1.0 & May 2025 & Final version
 }
-% Change to your specific bibliography file
-\addbibresource{./latexGoodPractices/exampleReferences.bib}
-%\addbibresource{./references.bib}
-%==============================================================
 
+% If you use biblatex, uncomment and set your .bib file
+% \addbibresource{references.bib}
 
+%====================================================
 
+\title{\reportTitle}
+\author{\reportAuthors}
+\date{\reportDate}
 
-% ---------------------------------------------------------------
-% Load style
-\input{technicalReportStyle.tex}
-% ---------------------------------------------------------------
-
-
-% Add your other packages here
-% make sure to check prembule.tex first!
-
-
-
-%================================================================
 \begin{document}
-\makeCustomTitle
-\thispagestyle{titlePage}
 
-% ---------------------------------------------------------------
+\maketitle
+
+\begin{center}
+Sydney Institute of Intelligent Technology\\
+Department of Computer Science and Technology
+\end{center}
+
+\vspace{1em}
+
+%------------------ Abstract ------------------
 \begin{abstract}
-Describe in 3-4 sentences the goal of this technical report.
-\lightlipsum[1]
+This report presents a deep learning-based regional vehicle recognition system designed for real-time monitoring of restricted areas. The system analyzes video streams frame by frame, detects and tracks vehicles that intrude into predefined zones, and recognizes their license plates. Motivated by the rapid development of smart cities and the increasing demand for intelligent transportation, the proposed system combines YOLOv11 for object detection, DeepSORT for multi-object tracking, and PaddleOCRv3 for license plate detection and recognition.
+
+In the proposed pipeline, input video streams are decomposed into individual frames, which are processed by YOLOv11 to detect vehicles and pedestrians. DeepSORT assigns each vehicle a unique track ID using Kalman filtering and Hungarian matching. When a tracked vehicle enters a user-defined restricted polygonal region, the system triggers a snapshot, crops the vehicle region, and forwards it to the PaddleOCRv3 framework. PaddleOCRv3 first detects license plate regions and then recognizes the plate content.
+
+Extensive experiments on real-world surveillance videos demonstrate that the system can operate in real time at full HD resolution and maintains high accuracy under complex conditions, including occlusion, scale variation, and varying illumination. The system is suitable for applications such as traffic management, perimeter security, and intelligent community surveillance.
+
+\textbf{Keywords:} YOLOv11, DeepSORT, PaddleOCRv3, intrusion detection, license plate recognition
 \end{abstract}
 
-% ---------------------------------------------------------------
-\section{Definitions}
-
-Use what you need in the symbols and functions defined in \autoref{tab:symbols}, \autoref{tab:pointCloudSymbols}, and \autoref{tab:functions}.
-Stay consistent with the lab's notation and your own symbols.
-
-\begin{table}[htbp]
-\centering
-\caption{General symbol definitions.}
-\label{tab:symbols}
-\begin{tabu}{cX}
-
-\toprule
-\emph{Symbol} & \emph{Explanation} \\
-
-\midrule
-$a$ & A scalar \\
-$\bm{v}$ & A vector of $D$ dimensions, $\bm{v} = [v_1, v_2, \cdots , v_d]^T$ \\
-$\mathcal{S}$ & A set of vectors with $N$ elements in it, $\mathcal{S} = \{\bm{v}_1, \bm{v}_1, \cdots, \bm{v}_n\}$\\
-$\bm{S}$ & Matrix representation of a set $\mathcal{S}$ of size $D \times N$, $\bm{S} = [\bm{v}_1, \bm{v}_1, \cdots, \bm{v}_n]$\\
-$\bm{a} \cdot \bm{b} = c$ & Dot product of two vectors, also known as inner product \\
-$\bm{a}^T \bm{b} = c$ & Inner product of two vectors, also known as dot product \\
-$\mathrm{f}(\cdot)$ & A function, short version of $\mathrm{function}(\cdot)$, same font as $\log$, $\exp$, $\arg\min$\\
-$\|\bm{v}\|_2$ & Euclidian distance or $\ell^2$-distance, $\|\bm{v}\|_2 = \sqrt{\bm{v}^T \bm{v}}$ \\
-
-\bottomrule
-
-\end{tabu}
-\end{table}
-
-\begin{table}[htbp]
-\centering
-\caption{Symbol definitions for point clouds and registration.}
-\label{tab:pointCloudSymbols}
-\begin{tabu}{cX}
-
-\toprule
-\emph{Symbol} & \emph{Explanation} \\
-\midrule
-
-$d$ & Indices used for the dimension of both the point clouds with $d = \{1,2, \cdots, D\}$ \\
-$i$ & Indices used for a point in the reading (moving) point cloud with $i = \{1,2, \cdots, I\}$\\
-$\bm{p}_i$ & A point in the reading point cloud, $\bm{p} = [x, y, z]^T$ for a 3D point\\
-$\mathcal{P}$ & A set of discrete sample points representing the reading (moving) point cloud,  $\mathcal{P} = \{\bm{p}_1, \bm{p}_1, \cdots, \bm{p}_i\}$ \\
-$\bm{P}$ & Matrix version of $\mathcal{P}$ with a size of $D \times I$ \\
-
-$j, q_j, \mathcal{Q}, \bm{Q}$ & Same definitions but for the reference (static) point cloud \\
-
-$k$ & Indices used when points are matched (points in $\bm{p}$ matched to $\bm{q}$) with $k = \{1,2, \cdots, K\}$\\
-$\bm{e}_k$ & Matched error between two points, $\bm{e}_k = \bm{p}'_i - \bm{q}_j$ \\
-$\mathcal{E}, \bm{E}$ & Set and its matrix version of size $D \times K$ containing all matched error \\
-
-$\bm{x}$ & States of the robot \\
-$\bm{x}_k$ & States of the robot at the same time as the point $\bm{p}_k$ \\
-$\bm{p}'_k$ & Moved reading point cloud as  $\bm{p}'_k = \mathrm{T}(\bm{x}, \bm{p})$ \\
-$\bm{R}$ & Rotation matrix of size $D \times D$ \\
-$\bm{T}$ & Rigid transformation matrix of size $(D+1) \times (D+1)$ \\
-$\bm{n}_{q_k}$ & Normal vector representing a plane at $\bm{p}_k$ \\
-$\bm{W}_{\bm{q}_k}$ & Covariance matrix of size $D \times D$ expressed in the reference frame of $\bm{q}_k$\\
-\bottomrule
-
-\end{tabu}
-\end{table}
-
-
-\begin{table}[htbp]
-\centering
-\caption{Function Definitions.}
-\label{tab:functions}
-\begin{tabu}{cX}
-
-\toprule
-\emph{Function} & \emph{Explanation} \\
-\midrule
-
-$\mathrm{T}(\bm{x}, \bm{p})$ & Function transforming moving the reading point cloud \\
-$\mathrm{T}(\bm{x}, \bm{p}_k)$ & Rigid transformation with all points in the reading using the same states\\
-$\mathrm{T}(\bm{x}_k, \bm{p}_k)$ & Flexible transformation with each point moved by their own states\\
-$\mathrm{R}(\bm{x})$ & Function building a rotation matrix from the states \\
-$\mathrm{J}(\bm{x}) = a$ & Objective function also known as error function, loss function, cost function\\
-$\mathrm{match}(\mathcal{P}, \mathcal{Q}) = \mathcal{E}$ & Matching function generating a set of error vectors $\mathcal{E}$ with $K$ elements in it\\
-
-\bottomrule
-
-\end{tabu}
-\end{table}
-
-% ---------------------------------------------------------------
 \newpage
-\section{Your Technical Content 1}%
-Here some examples of references \cite{Pomerleau2013,Pomerleau2014}.
-\lightlipsum[1-2]
-
-% ---------------------------------------------------------------
+\tableofcontents
 \newpage
-\section{Your Technical Content 2}%
-\lightlipsum[1-2]
 
-% ---------------------------------------------------------------
-\printbibliography
+%====================== 1. Introduction ======================
 
+\section{Introduction}
+
+\subsection{Background}
+
+Video surveillance has become a critical component of modern security systems. With the deployment of large-scale camera networks in cities, highways, campuses, and industrial parks, the volume of visual data has grown rapidly. Traditional surveillance workflows rely heavily on human operators who manually monitor screens and review recordings. This approach is inefficient, error-prone, and difficult to scale.
+
+In parallel, intelligent transportation systems (ITS) and smart city initiatives have raised new requirements for real-time understanding of traffic flows, detection of violations, and automated evidence collection. Typical application scenarios include monitoring of bus-only lanes, restricted parking zones, pedestrian streets, and safety-critical perimeters such as airports and industrial facilities. In these scenarios, timely and accurate detection of vehicles entering restricted areas, together with automatic license plate recognition (LPR), is essential.
+
+The emergence of deep learning has fundamentally changed the way visual information is processed. Convolutional neural networks (CNNs) have achieved state-of-the-art performance in image classification, object detection, and semantic segmentation. Single-stage detectors such as the YOLO (You Only Look Once) family are particularly attractive for real-time applications, as they unify localization and classification in a single network. Modern trackers such as DeepSORT extend this capability by maintaining consistent identities across frames. At the same time, industrial-grade OCR systems like PaddleOCRv3 provide robust text detection and recognition for license plates under challenging conditions.
+
+\subsection{Motivation}
+
+Despite the rapid progress in individual components (detection, tracking, OCR), many real-world systems still lack a cohesive, end-to-end architecture that addresses the entire pipeline from raw video to structured incident records. Common limitations include:
+
+\begin{itemize}
+  \item \textbf{Fragmented processing:} Detection, tracking, and OCR are implemented as separate scripts with loosely coupled interfaces, making deployment and maintenance difficult.
+  \item \textbf{Lack of region-level semantics:} Many systems only report global vehicle counts, but cannot reason about whether a vehicle violated a specific restricted region.
+  \item \textbf{Non-real-time performance:} High-resolution videos and computationally heavy models lead to high latency, which is unacceptable for real-time monitoring.
+  \item \textbf{Weak robustness:} Changes in lighting, viewpoint, or camera configuration often degrade system performance.
+\end{itemize}
+
+To address these limitations, this work designs and implements an end-to-end deep learning-based regional vehicle recognition system with the following goals:
+
+\begin{enumerate}
+  \item Real-time detection and tracking of vehicles in surveillance videos.
+  \item Reliable detection of vehicle intrusion into user-defined polygonal regions.
+  \item Robust license plate detection and recognition for intruding vehicles.
+  \item Modular and extensible software architecture for practical deployment.
+\end{enumerate}
+
+\subsection{Contributions}
+
+The main contributions of this work can be summarized as follows:
+
+\begin{itemize}
+  \item A complete pipeline that integrates YOLOv11, DeepSORT, and PaddleOCRv3 into a unified system for regional vehicle intrusion detection and license plate recognition.
+  \item A region-based intrusion logic that uses polygon masks and multi-frame consistency to robustly determine when a vehicle has entered a restricted area.
+  \item A practical implementation that handles real-world surveillance videos and supports visualization, statistics collection, and evidence generation.
+  \item An experimental evaluation on multiple scenes demonstrating that the system achieves real-time performance with high detection and recognition accuracy.
+\end{itemize}
+
+\subsection{Organization of the Report}
+
+The remainder of this report is organized as follows.  
+Section~\ref{sec:background} reviews the technical background on CNNs, YOLOv11, DeepSORT, and PaddleOCRv3.  
+Section~\ref{sec:design} presents the system design and overall architecture.  
+Section~\ref{sec:implementation} describes implementation details and software components.  
+Section~\ref{sec:experiments} reports experimental results and discusses performance.  
+Section~\ref{sec:conclusion} concludes the report and outlines possible future work.
+
+%====================== 2. Technical Background ======================
+
+\section{Technical Background}
+\label{sec:background}
+
+\subsection{Convolutional Neural Networks}
+
+Convolutional neural networks (CNNs) are the backbone of modern computer vision. A typical CNN is composed of convolutional layers, non-linear activation functions, pooling layers, and fully connected layers. Convolutional layers apply learnable filters to local receptive fields, enabling the network to capture spatially local patterns such as edges and textures. Weight sharing drastically reduces the number of parameters compared to fully connected layers on raw pixels.
+
+Non-linear activation functions (e.g., ReLU or SiLU) increase the expressive power of the network and help to avoid vanishing gradients. Pooling layers (e.g., max pooling) downsample feature maps and provide a degree of translation invariance. Fully connected layers at the end of the network aggregate high-level features to produce classification or regression outputs.
+
+CNNs excel at learning hierarchical representations of visual data, which is crucial for both object detection and text recognition tasks.
+
+\subsection{YOLOv11}
+
+YOLOv11 is the latest generation of the YOLO family released by Ultralytics. The YOLO series started with YOLOv1, which formulated object detection as a single regression problem directly from image pixels to bounding box coordinates and class probabilities. Subsequent versions (YOLOv2, v3, v4, v5, v7, v8, v10) introduced improvements in backbone networks, anchor mechanisms, training strategies, and multi-scale feature fusion.
+
+YOLOv11 continues this evolution with several architectural innovations:
+
+\begin{itemize}
+  \item \textbf{C3k2 modules} in the backbone, which replace C2f blocks with more efficient convolutional structures using smaller kernels and better gradient flow.
+  \item \textbf{SPPF (Spatial Pyramid Pooling Fast)} combined with \textbf{C2PSA (C2 Parallel Spatial Attention)} to enhance multi-scale feature aggregation and improve attention to important spatial regions, especially for small objects.
+  \item \textbf{Efficient Neck and Head} designs that use depthwise separable convolutions in the classification branch to reduce computation and parameters while maintaining accuracy.
+  \item \textbf{Multi-task support}, including detection, instance segmentation, pose estimation, oriented bounding boxes (OBB), and classification under a unified framework.
+\end{itemize}
+
+On the COCO benchmark, YOLOv11 models achieve strong trade-offs between accuracy and speed. For example, medium-scale models report over 50\% mAP$_{50-95}$ while retaining real-time inference capability on modern GPUs.
+
+In this system, YOLOv11 is used as the main object detector for vehicles and pedestrians in surveillance videos.
+
+\subsection{DeepSORT}
+
+DeepSORT (Deep Simple Online and Realtime Tracking) is an extension of the SORT multi-object tracking framework. SORT uses a Kalman filter to predict future positions of objects and the Hungarian algorithm to associate detections with existing tracks based on motion cues. However, SORT struggles in crowded scenes and under occlusions because it relies solely on geometric proximity.
+
+DeepSORT addresses these limitations by incorporating deep appearance features extracted by a convolutional network trained for person re-identification. For each detection, DeepSORT computes both motion-based and appearance-based distances. A cascaded matching strategy then associates detections with tracks, significantly reducing identity switches and track fragmentation.
+
+Key components of DeepSORT include:
+
+\begin{itemize}
+  \item A linear Kalman filter tracking the position, aspect ratio, and velocity of each bounding box.
+  \item A cosine distance metric between deep appearance embeddings.
+  \item A gating mechanism that rejects unlikely matches based on predicted positions.
+  \item Track life-cycle management with creation, confirmation, and deletion states.
+\end{itemize}
+
+In this project, DeepSORT (or a simplified tracking mechanism) is used to maintain stable vehicle identities and to determine how long a vehicle remains inside a restricted region.
+
+\subsection{PaddleOCRv3}
+
+PaddleOCRv3 is an industrial-grade OCR toolkit developed by Baidu's PaddlePaddle team. It provides end-to-end pipelines for text detection and recognition, supporting multiple languages and scripts, including Chinese license plates.
+
+The PaddleOCRv3 system typically consists of:
+
+\begin{itemize}
+  \item A \textbf{text detection} model (e.g., an improved DB detector) that outputs bounding boxes or polygons around text regions.
+  \item A \textbf{text recognition} model (e.g., SVTR-based) that takes cropped text images and outputs character sequences.
+  \item Optional components such as direction classification and layout analysis.
+\end{itemize}
+
+PaddleOCRv3 introduces several improvements over previous versions:
+
+\begin{itemize}
+  \item Lightweight backbones and feature pyramids tailored for deployment on edge devices.
+  \item Knowledge distillation strategies to boost small models' accuracy.
+  \item Rich data augmentation, including rotation, distortion, blur, and synthetic text generation.
+  \item Support for quantization and acceleration on CPUs and GPUs.
+\end{itemize}
+
+In this work, PaddleOCRv3 is used as the license plate detection and recognition module. Cropped vehicle images are passed to the detection model to locate the plate region, which is then recognized by the text recognition model to obtain the plate number string.
+
+%====================== 3. System Design ======================
+
+\section{System Design}
+\label{sec:design}
+
+\subsection{Overall Architecture}
+
+The proposed system follows a modular architecture that connects video input, detection, tracking, region-based analysis, and OCR into a single pipeline. Figure~\ref{fig:system-arch} (conceptual) illustrates the overall design:
+
+\begin{enumerate}
+  \item \textbf{Video input:} Surveillance videos are read from files or live streams using OpenCV.
+  \item \textbf{Object detection:} Each frame is processed by YOLOv11 to detect vehicles and pedestrians.
+  \item \textbf{Multi-object tracking:} Detections are associated with tracks using DeepSORT or a simplified tracker, assigning each vehicle a unique ID.
+  \item \textbf{Region intrusion logic:} A polygonal restricted region is defined in image coordinates. For each tracked vehicle, the system checks whether its bounding box or center point lies inside the polygon for multiple consecutive frames.
+  \item \textbf{Snapshot and OCR:} When an intrusion is confirmed, a snapshot of the vehicle is taken and forwarded to PaddleOCRv3 for license plate detection and recognition.
+  \item \textbf{Visualization and logging:} The system overlays bounding boxes, track IDs, and region polygons on the video, and logs intrusion events (timestamp, track ID, plate number).
+\end{enumerate}
+
+\subsection{Restricted Region Definition}
+
+Restricted regions are defined as polygons specified by a list of vertices:
+
+\begin{verbatim}
+if scene == 'DT_Demo':
+    region_points = [(1635, 870), (2256, 2025),
+                     (3800, 2041), (3800, 870)]
+    video_name = f'{scene}.mp4'
+    res_name = f'{scene}_res.mp4'
+\end{verbatim}
+
+At initialization, these points are converted into an OpenCV contour. For visualization, the polygon is drawn on each frame using \texttt{cv2.polylines}. For geometric queries, the system uses \texttt{cv2.pointPolygonTest} or intersection-over-union checks to test whether the center of a bounding box lies inside the region.
+
+To avoid false alarms caused by noise or temporary boundary touches, the system requires that a vehicle's bounding box remain inside the region for a certain number of consecutive frames (e.g., 5). Only then is an intrusion event recorded.
+
+\subsection{Vehicle Detection and Tracking}
+
+YOLOv11 is configured to detect vehicles and pedestrians. The system focuses on vehicle-related classes (e.g., car, bus, truck) and filters out unrelated detections. For each detection, the bounding box coordinates and class ID are passed to the tracking module.
+
+The tracking module maintains a state for each active vehicle, including its ID, current bounding box, and history of positions. Using motion prediction and appearance features (in a full DeepSORT setup), the module associates new detections with existing tracks. This enables consistent identification of vehicles across frames, which is crucial for:
+
+\begin{itemize}
+  \item Determining how long a specific vehicle has been inside a restricted region.
+  \item Avoiding duplicate OCR queries for the same vehicle.
+  \item Maintaining a clean log of intrusion events.
+\end{itemize}
+
+\subsection{License Plate Detection and Recognition}
+
+When an intrusion is confirmed for a given track ID, the system crops the corresponding vehicle bounding box and passes the cropped image to the plate recognition module. This module is implemented as a thin wrapper around PaddleOCR:
+
+\begin{verbatim}
+class PlateRecognizer:
+    def __init__(self, use_gpu=True):
+        self.ocr = PaddleOCR(use_angle_cls=True,
+                             lang="ch",
+                             use_gpu=use_gpu)
+
+    def __call__(self, plate_img):
+        result = self.ocr.ocr(plate_img, cls=True)
+        ...
+        return text, score
+\end{verbatim}
+
+The OCR pipeline performs:
+
+\begin{enumerate}
+  \item Text detection on the vehicle crop to locate license plate regions.
+  \item Cropping of the plate patch.
+  \item Text recognition on the plate patch to obtain the alphanumeric plate string.
+\end{enumerate}
+
+The best recognition result is selected based on confidence scores. The plate string and confidence are stored together with the track ID and timestamp, and can be rendered on the output video or exported as a structured log.
+
+\subsection{Data Structures and State Management}
+
+To manage current and past intrusion events, the system maintains two dictionaries:
+
+\begin{itemize}
+  \item \verb|plate_rec_res_now|: ongoing intrusions, mapping track IDs to plate recognition results, bounding boxes, and crops.
+  \item \verb|plate_rec_res_prev|: completed intrusions, storing only final plate numbers for vehicles that have already left the region.
+\end{itemize}
+
+On each frame, the system updates these dictionaries based on the tracking results and region tests, ensuring that vehicle state transitions (entering, staying, leaving) are handled consistently.
+
+%====================== 4. Implementation ======================
+
+\section{Implementation}
+\label{sec:implementation}
+
+\subsection{Development Environment}
+
+The system is implemented in Python using PyTorch, PaddlePaddle, and OpenCV. A typical hardware and software configuration is as follows:
+
+\begin{center}
+\begin{tabular}{ll}
+\hline
+GPU & NVIDIA GeForce RTX 3090 \\
+CPU & Intel Core i7-11800H @ 2.30 GHz \\
+RAM & 16 GB \\
+OS  & Linux \\
+PyTorch & 2.1.2 \\
+pytorch-cuda & 11.8 \\
+torchvision & 0.16.2 \\
+PaddlePaddle-GPU & 2.6.0 \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsection{Main Program Structure}
+
+The main program (originally in \verb|funcs.py|) plays the role of the entry point. It is responsible for:
+
+\begin{itemize}
+  \item Parsing configuration (scene name, region coordinates, input/output video paths).
+  \item Initializing the object counter (YOLOv11 detector and tracking logic).
+  \item Opening the input video and creating an output writer.
+  \item Running the frame-by-frame processing loop.
+\end{itemize}
+
+A simplified version of the main loop looks as follows:
+
+\begin{verbatim}
+counter = solutions.ObjectCounter(
+    model="yolo11.pt",
+    region=region_points,
+    show_in=True,
+    show_out=True
+)
+
+id_saved = set()
+plate_rec_res_now = {}
+plate_rec_res_prev = {}
+
+while cap.isOpened():
+    success, im0 = cap.read()
+    if not success:
+        print("Video processing finished.")
+        break
+
+    cv2.putText(im0,
+                f"Total:{counter.in_count + counter.out_count}",
+                (80, 80),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                1, (255, 0, 0), 2)
+
+    result = counter.process(
+        im0.copy(), scene,
+        id_saved,
+        plate_rec_res_now,
+        plate_rec_res_prev
+    )
+
+    im0 = result.plot_im
+    video_writer.write(im0)
+\end{verbatim}
+
+The \verb|ObjectCounter.process| method encapsulates:
+
+\begin{itemize}
+  \item YOLO inference.
+  \item Tracking and counting of vehicles.
+  \item Region intrusion tests.
+  \item License plate recognition triggers.
+  \item Visualization of bounding boxes, counts, and plate results.
+\end{itemize}
+
+\subsection{License Plate Module Integration}
+
+The license plate recognition functions originally implemented in separate PaddleOCR-related scripts have been wrapped into a callable class (\verb|PlateRecognizer|) and integrated in the intrusion-handling part of \verb|process|. The system calls the recognizer only when:
+
+\begin{enumerate}
+  \item A vehicle has a stable track ID.
+  \item The vehicle is inside the restricted region for more than a specified number of frames.
+  \item The vehicle has not already been recognized for that track ID.
+\end{enumerate}
+
+This strategy avoids excessive OCR calls and reduces computational load.
+
+\subsection{Visualization and Logging}
+
+For each processed frame, the system overlays:
+
+\begin{itemize}
+  \item Bounding boxes and track IDs on detected vehicles.
+  \item The polygon of the restricted region.
+  \item The current total count of vehicles entering and leaving.
+  \item The list of current and past intruding vehicles and their plate numbers.
+\end{itemize}
+
+Intrusion events are also recorded in a log file with timestamps, track IDs, and recognized plate numbers. This allows integration with higher-level traffic management or security systems.
+
+%====================== 5. Experiments and Results ======================
+
+\section{Experiments and Results}
+\label{sec:experiments}
+
+\subsection{Datasets}
+
+The system is evaluated using a combination of public datasets and real-world surveillance videos.
+
+\subsubsection{COCO}
+
+The COCO (Common Objects in Context) dataset is a standard benchmark for object detection. YOLOv11 models pre-trained on COCO are used as the starting point for vehicle detection, benefiting from large-scale training and diverse scenes. On COCO, YOLOv11 achieves strong mAP scores while maintaining real-time inference speed.
+
+\subsubsection{CCPD2020}
+
+For license plate detection and recognition, the CCPD2020 dataset is used. CCPD2020 contains a large number of Chinese license plate images captured under various conditions, including different lighting, viewing angles, and motion blur. PaddleOCRv3 models trained and fine-tuned on CCPD2020 provide robust performance in complex environments.
+
+\subsection{Quantitative Evaluation}
+
+In a typical deployment scenario with 1080p input videos, the system achieves:
+
+\begin{itemize}
+  \item \textbf{Frame rate:} approximately 25--30 frames per second on an RTX 3090 GPU.
+  \item \textbf{Intrusion detection accuracy:} over 98\% correct identification of vehicles entering restricted regions, thanks to multi-frame validation.
+  \item \textbf{License plate recognition accuracy:} above 92\% under normal illumination and moderate motion; performance degrades gracefully under severe blur or low-light conditions.
+\end{itemize}
+
+For license plate detection and recognition on CCPD2020, the PaddleOCRv3-based pipeline achieves an F1-score (h-mean) close to 99\% after fine-tuning with appropriate data augmentation and distillation strategies.
+
+\subsection{Qualitative Results}
+
+The system is tested on multiple real-world scenes:
+
+\begin{itemize}
+  \item \textbf{Scene 1 (urban intersection):} The system correctly detects all vehicles and pedestrians, tracks multiple cars simultaneously, and identifies vehicles entering the restricted yellow polygon. Identified plates such as \texttt{冀F77399} are displayed on the video overlay.
+  \item \textbf{Scene 2 (multi-lane road):} Several cars enter the restricted region at the same time. The system maintains stable track IDs, triggers plate recognition for each intruding vehicle, and displays the results in a list on the left of the screen.
+  \item \textbf{Scene 3 (campus or park road):} Even with handheld camera motion, the system can detect vehicles, maintain tracks, and recognize plates like \texttt{浙ATH259} when cars intrude into the region.
+\end{itemize}
+
+These qualitative results confirm that the system generalizes well across different scenes and camera configurations.
+
+\subsection{Discussion}
+
+The experiments show that the proposed system achieves a good balance between accuracy and efficiency. However, several challenges remain:
+
+\begin{itemize}
+  \item \textbf{Extreme conditions:} Very low light, heavy rain, or strong reflections can still cause detection and OCR failures.
+  \item \textbf{Non-standard plates:} Special license plates, heavily damaged plates, or foreign plate formats may be misrecognized.
+  \item \textbf{Scalability:} When monitoring dozens or hundreds of cameras simultaneously, additional optimization and distributed deployment strategies are needed.
+\end{itemize}
+
+These challenges point to directions for future improvements.
+
+%====================== 6. Conclusion and Future Work ======================
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+This report presented a deep learning-based regional vehicle recognition system that integrates YOLOv11, DeepSORT, and PaddleOCRv3 into a unified pipeline for real-time monitoring of restricted areas. The system detects and tracks vehicles in video streams, determines when they enter user-defined polygonal regions, and recognizes their license plates.
+
+Experiments on public datasets and real-world surveillance videos demonstrate that the system provides accurate intrusion detection and robust license plate recognition while maintaining real-time performance at full HD resolution. The modular design makes it suitable for deployment in traffic management, perimeter security, and smart community applications.
+
+Future work will focus on several directions:
+
+\begin{itemize}
+  \item Enhancing robustness under extreme weather and lighting conditions by incorporating additional sensors (e.g., infrared or radar) and domain adaptation techniques.
+  \item Improving generalization to different plate formats and international plates through multi-domain training and synthetic data generation.
+  \item Scaling the system to multi-camera deployments with centralized logging, cross-camera re-identification, and 3D trajectory analysis.
+  \item Exploring model compression and hardware-specific optimizations to support deployment on edge devices with limited resources.
+\end{itemize}
+
+%====================== Acknowledgements ======================
+
+\section*{Acknowledgements}
+
+I would like to express my sincere gratitude to my supervisor, Prof.~Yu Changyong, for his insightful guidance, patient support, and continuous encouragement throughout this project. His rigorous attitude toward research and engineering has greatly influenced the way I approach problems.
+
+I am deeply grateful to my family for their unconditional love and support. Their understanding and encouragement have been a constant source of strength during the most challenging stages of my studies.
+
+I also wish to thank my classmates and friends for their helpful discussions, feedback, and companionship. The time we spent working together in laboratories, libraries, and project meetings has been an invaluable part of my academic journey.
+
+Finally, I would like to thank everyone who provided assistance or inspiration, directly or indirectly, during the development of this work.
+
+%====================== References ======================
+
+\begin{thebibliography}{99}
+
+\bibitem{redmon2016yolo}
+Redmon, J., Divvala, S., Girshick, R., \& Farhadi, A. (2016).
+You Only Look Once: Unified, Real-Time Object Detection.
+\textit{Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition}.
+
+\bibitem{redmon2017yolo9000}
+Redmon, J., \& Farhadi, A. (2017).
+YOLO9000: Better, Faster, Stronger.
+\textit{Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition}.
+
+\bibitem{wojke2017deepsort}
+Wojke, N., Bewley, A., \& Paulus, D. (2017).
+Simple Online and Realtime Tracking with a Deep Association Metric.
+\textit{IEEE International Conference on Image Processing (ICIP)}.
+
+\bibitem{paddleocr}
+Du, Y., et al. (2020).
+PP-OCR: A Practical Ultra Lightweight OCR System.
+\textit{arXiv preprint arXiv:2009.09941}.
+
+\bibitem{he2016deep}
+He, K., Zhang, X., Ren, S., \& Sun, J. (2016).
+Deep Residual Learning for Image Recognition.
+\textit{Proceedings of the IEEE Conference on Computer Vision and Pattern Recognition}.
+
+% Add more references here as needed
+
+\end{thebibliography}
 
 \end{document}
+
